@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hybrid-autoscaling-app
+  labels:
+    app: hybrid-app
+spec:
+  replicas: 1 # Controlled by HPA
+  selector:
+    matchLabels:
+      app: hybrid-app
+  template:
+    metadata:
+      labels:
+        app: hybrid-app
+    spec:
+      containers:
+        - name: app
+          image: gcr.io/${GOOGLE_PROJECT_ID}/hybrid-autoscaling-app:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            periodSeconds: 1
+            failureThreshold: 1
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+      # CRITICAL: Prefer Spot Nodes
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: cloud.google.com/gke-spot
+                    operator: In
+                    values:
+                      - "true"
+
+      # CRITICAL: Tolerate Spot Taints
+      tolerations:
+        - key: "node-type"
+          operator: "Equal"
+          value: "spot"
+          effect: "NoSchedule"

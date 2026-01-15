@@ -1,0 +1,15 @@
+apiVersion: "descheduler/v1alpha2"
+kind: DeschedulerPolicy
+profiles:
+  - name: Default
+    pluginConfig:
+    - name: "RemoveDuplicates"
+    - name: "RemovePodsViolatingNodeAffinity"
+      args:
+        nodeAffinityType:
+        - "preferredDuringSchedulingIgnoredDuringExecution"
+    plugins:
+      balance:
+        enabled:
+          - "RemoveDuplicates"
+          - "RemovePodsViolatingNodeAffinity"
